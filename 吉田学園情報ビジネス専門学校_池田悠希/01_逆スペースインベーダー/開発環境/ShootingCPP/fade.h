@@ -15,31 +15,30 @@
 class CFade : public CPolygon
 {
 public:
+    CFade();
+    ~CFade();
+    typedef enum
+    {
+        FADE_NONE = 0,    // 何もない状態
+        FADE_IN,          // フェードイン処理
+        FADE_OUT,         // フェードアウト処理
+        FADE_MAX
+    } FADE;
 
-	CFade();
-	~CFade();
-	typedef enum
-	{
-		FADE_NONE = 0,	// 何もない状態
-		FADE_IN,		// フェードイン処理
-		FADE_OUT,	// フェードアウト処理
-		FADE_MAX
-	} FADE;
+    // プロトタイプ宣言
+    HRESULT Init(void);
+    void Uninit(void);
+    void Update(void);
+    void Draw(void);
 
-	// プロトタイプ宣言
-	HRESULT Init(void);
-	void Uninit(void);
-	void Update(void);
-	void Draw(void);
+    static CFade* Create(CManager::GAMEMODE modeNext);
+    FADE GetFadePhase(void);
+    static bool GetUse(void);
 
-	static CFade* Create(CManager::GAMEMODE modeNext);
-	FADE GetFadePhase(void);
-	static bool GetUse(void);
 private:
-
-	FADE m_fadePhase;			// フェード状態
-	CManager::GAMEMODE m_modeNext;	// 次の画面（モード）
-	D3DXCOLOR m_colorFade;		// フェード色
-	static bool bUse;
+    FADE m_fadePhase;                 // フェード状態
+    CManager::GAMEMODE m_modeNext;    // 次の画面（モード）
+    D3DXCOLOR m_colorFade;            // フェード色
+    static bool m_bUse;
 };
 #endif

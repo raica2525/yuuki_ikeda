@@ -20,20 +20,21 @@ class CPolygon;
 class CCursol : public CScene
 {
 public:
-	CCursol();		//コンストラクタ
-	~CCursol();	//デストラクタ
+    CCursol();     //コンストラクタ
+    ~CCursol();    //デストラクタ
 
-	static CCursol* Create();	//ポリゴン生成処理
+    static CCursol* Create();    //ポリゴン生成処理
 
-	HRESULT Init();		//初期化処理
-	void Uninit(void);		//終了処理
-	void Update(void);		//更新処理
-	void Draw(void);		//描画処理
-	static HRESULT Load(void);
-	static void Unload(void);
+    HRESULT Init();       //初期化処理
+    void Uninit(void);    //終了処理
+    void Update(void);    //更新処理
+    void Draw(void);      //描画処理
+    static HRESULT Load(void);
+    static void Unload(void);
+
 private:
-	CPolygon *m_pPolygon;
-	static LPDIRECT3DTEXTURE9 m_pTexture;
+    CPolygon* m_pPolygon;
+    static LPDIRECT3DTEXTURE9 m_pTexture;
 };
 
 #endif

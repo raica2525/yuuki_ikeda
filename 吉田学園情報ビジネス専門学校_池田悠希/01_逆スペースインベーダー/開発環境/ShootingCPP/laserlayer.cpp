@@ -1,74 +1,106 @@
 //・・・・・・・・・・・・・・・・・・・・・・・・・・・
 //
-//	laser.cpp
+//	laserlayer.cpp
 //	Author:池田悠希
 //
 //・・・・・・・・・・・・・・・・・・・・・・・・・・・
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//インクルードファイル
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 #include "laserlayer.h"
 #include "manager.h"
 #include "renderer.h"
 #include "explosion.h"
 #include "sound.h"
 #include "enemy.h"
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//静的メンバ変数宣言
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 LPDIRECT3DTEXTURE9 CLaserLayer::m_pTexture = NULL;
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//コンストラクタ
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 CLaserLayer::CLaserLayer()
 {
-
 }
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//デストラクタ
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 CLaserLayer::~CLaserLayer()
 {
-
 }
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//初期化処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 HRESULT CLaserLayer::Init(void)
 {
-	CPolygon::Init();
-	BindTexture(m_pTexture);
+    CPolygon::Init();
+    BindTexture(m_pTexture);
 
-	return S_OK;
+    return S_OK;
 }
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//終了処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 void CLaserLayer::Uninit(void)
 {
-	CPolygon::Uninit();
+    CPolygon::Uninit();
 }
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//更新処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 void CLaserLayer::Update(void)
 {
-	CPolygon::Update();
+    CPolygon::Update();
 }
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//描画処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 void CLaserLayer::Draw(void)
 {
-	CPolygon::Draw();
+    CPolygon::Draw();
 }
 
-CLaserLayer* CLaserLayer::Create(D3DXVECTOR3 pos, D3DCOLOR col,int nWidth,int Length,float fRot)
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//クリエイト関数
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+CLaserLayer* CLaserLayer::Create(D3DXVECTOR3 pos, D3DCOLOR col, int nWidth, int Length, float fRot)
 {
-	CLaserLayer* pLaserLayer = NULL;
-	pLaserLayer = new CLaserLayer;
-	pLaserLayer->SetPos(pos);
-	pLaserLayer->SetCol(col);
-	pLaserLayer->SetRot(fRot);
-	pLaserLayer->SetSize(D3DXVECTOR3(Length, nWidth,0));
-	pLaserLayer->SetObjType(CScene::OBJTYPE_LASER);
-	pLaserLayer->Init();
-	return pLaserLayer;
+    CLaserLayer* pLaserLayer = new CLaserLayer;      
+    pLaserLayer->SetPos(pos);
+    pLaserLayer->SetCol(col);
+    pLaserLayer->SetRot(fRot);
+    pLaserLayer->SetSize(D3DXVECTOR3((float)Length, (float)nWidth, 0));
+    pLaserLayer->SetObjType(CScene::OBJTYPE_LASER);
+    pLaserLayer->Init();
+    return pLaserLayer;
 }
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//ファイル読み込み処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 HRESULT CLaserLayer::Load(void)
 {
-	D3DXCreateTextureFromFile(CManager::GetRenderer()->GetDevice(), "Resources\\Laser.png", &m_pTexture);
-
-	return S_OK;
+    D3DXCreateTextureFromFile(CManager::GetRenderer()->GetDevice(), "Resources\\Laser.png", &m_pTexture);
+    return S_OK;
 }
 
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//読み込みデータ破棄処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 void CLaserLayer::Unload(void)
 {
-	if (m_pTexture != NULL) {
-		m_pTexture->Release();
-		m_pTexture = NULL;
-	}
+    if(m_pTexture != NULL)
+    {
+        m_pTexture->Release();
+        m_pTexture = NULL;
+    }
 }

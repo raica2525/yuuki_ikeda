@@ -1,99 +1,111 @@
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//
+//	inputmouse.cpp
+//	Author:池田悠希
+//
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//インクルードファイル
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 #include "inputmouse.h"
 
-
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//コンストラクタ
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 CInputMouse::CInputMouse()
 {
-
 }
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//デストラクタ
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 CInputMouse::~CInputMouse()
 {
-
 }
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//初期化処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 HRESULT CInputMouse::Init(HINSTANCE hInstance, HWND hWnd)
 {
-	CInput::Init(hInstance, hWnd);
-	if (FAILED(m_pInput->CreateDevice(GUID_SysMouse, &m_pDeviceInput, NULL)))
+    CInput::Init(hInstance, hWnd);
+	//入力デバイスの生成
+    if(FAILED(m_pInput->CreateDevice(GUID_SysMouse, &m_pDeviceInput, NULL)))
+    {
+        return E_FAIL;
+    }
+	//データ・フォーマット生成
+	if (FAILED(m_pDeviceInput->SetDataFormat(&c_dfDIMouse2)))
 	{
 		return E_FAIL;
 	}
+	//協調レベル設定
+	if (FAILED(m_pDeviceInput->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND)))
+	{
+		return E_FAIL;
+	}
+	//軸モード設定
+    DIPROPDWORD diprop;
+    diprop.diph.dwSize       = sizeof(diprop);
+    diprop.diph.dwHeaderSize = sizeof(diprop.diph);
+    diprop.diph.dwObj        = 0;
+    diprop.diph.dwHow        = DIPH_DEVICE;
+    diprop.dwData = DIPROPAXISMODE_REL;
+    m_pDeviceInput->SetProperty(DIPROP_AXISMODE, &diprop.diph);
 
-	m_pDeviceInput->SetDataFormat(&c_dfDIMouse2); //ﾏｳｽ用のﾃﾞｰﾀ・ﾌｫｰﾏｯﾄ設定
-	m_pDeviceInput->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-
-	DIPROPDWORD diprop;
-	diprop.diph.dwSize = sizeof(diprop);
-	diprop.diph.dwHeaderSize = sizeof(diprop.diph);
-	diprop.diph.dwObj = 0;
-	diprop.diph.dwHow = DIPH_DEVICE;
-	diprop.dwData = DIPROPAXISMODE_REL; // 相対値モードで設定（絶対値はDIPROPAXISMODE_ABS）
-	m_pDeviceInput->SetProperty(DIPROP_AXISMODE, &diprop.diph);
-
-	m_pDeviceInput->Acquire();
-	return S_OK;
+	//アクセス権取得
+    m_pDeviceInput->Acquire();
+    return S_OK;
 }
 
-/******************************************************************************
-* 関数名 : UninitMouse
-*
-* 引数 : void
-* 戻り値 : なし
-* 説明 : 終了処理
-*******************************************************************************/
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//終了処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 void CInputMouse::Uninit(void)
 {
 
-	if (m_pDeviceInput != NULL)
-	{
-		m_pDeviceInput->Unacquire();
-		m_pDeviceInput = NULL;
-	}
+    if(m_pDeviceInput != NULL)
+    {
+		//アクセス権開放
+        m_pDeviceInput->Unacquire();
+        m_pDeviceInput = NULL;
+    }
 }
 
-
-/******************************************************************************
-* 関数名 : UpdateMouse
-*
-* 引数 : void
-* 戻り値 : なし
-* 説明 : 更新処理
-*******************************************************************************/
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//更新処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
 void CInputMouse::Update(void)
 {
-	for (int nCount = 0; nCount < 4; nCount++)
-	{
-		m_State.rgbButtons[nCount] = 0;
-	}
-	m_pDeviceInput->GetDeviceState(sizeof(DIMOUSESTATE2), &m_State);
-
-
+	//状態初期化
+    for(int nCount = 0; nCount < sizeof(m_State.rgbButtons) / sizeof(m_State.rgbButtons[0]); nCount++)
+    {
+        m_State.rgbButtons[nCount] = 0;
+    }
+	//状態取得
+    m_pDeviceInput->GetDeviceState(sizeof(DIMOUSESTATE2), &m_State);
+	//アクセス権取得
 	m_pDeviceInput->Acquire();
-
-	
 }
 
-/******************************************************************************
-* 関数名 : GetMouse
-* 引数 : void
-* 戻り値 : なし
-* 説明 : 終了処理
-*******************************************************************************/
-bool CInputMouse::GetKeyPress(int Mouse)
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//状態取得処理
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+bool CInputMouse::GetKeyPress(int nkey)
 {
-	return (m_State.rgbButtons[Mouse] & 0x80) ? true : false;
+    return (m_State.rgbButtons[nkey] & 0x80) ? true : false;
 }
 
 bool CInputMouse::GetKeyTrigger(int nkey)
 {
-	/* 前に取得した時のマウスの状態 */
-	static bool prevState[sizeof(m_State.rgbButtons) / sizeof(m_State.rgbButtons[0])];
-	/* 今のマウスの状態 */
-	bool current = GetKeyPress(nkey);
-	/* 前の状態がfalseで、今の状態がtrueならば、クリックした瞬間と判定する */
-	bool ret = current && !prevState[nkey];
-	/* 今の状態を保存する */
-	prevState[nkey] = current;
-	/* 判定結果を返す */
-	return ret;
+	//前フレームの情報保存用変数
+    static bool prevState[sizeof(m_State.rgbButtons) / sizeof(m_State.rgbButtons[0])];
+	//現在の情報保存
+    bool current = GetKeyPress(nkey);
+	//前フレームと現在のマウスの状態が同じか違うか
+    bool ret = current && !prevState[nkey];
+	//現在のフレームの情報を保存
+    prevState[nkey] = current;
+    return ret;
 }
-
-
