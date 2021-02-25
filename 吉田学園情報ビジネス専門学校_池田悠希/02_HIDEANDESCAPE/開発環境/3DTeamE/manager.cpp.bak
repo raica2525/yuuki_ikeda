@@ -1,0 +1,281 @@
+#include "manager.h"
+#include "renderer.h"
+#include "scene.h"
+#include "scene2d.h"
+#include "input.h"
+#include "inputkeyboard.h"
+#include "inputmouse.h"
+#include "debug.h"
+#include "camera.h"
+#include "light.h"
+#include "scene3d.h"
+#include "model.h"
+#include "player.h"
+#include "polygon3d.h"
+#include "crosshair.h"
+#include "light_enemy.h"
+#include "tutorialstage.h"
+#include "item.h"
+#include "fade.h"
+#include "title.h"
+#include "tutorial.h"
+
+CRenderer* CManager::m_pRenderer = NULL;
+CInput* CManager::m_pInputKey = NULL;
+CInput* CManager::m_pInputMou = NULL;
+CCamera* CManager::m_pCamera = NULL;
+CPlayer* CManager::m_pPlayer = NULL;
+CTutorialStage* CManager::m_pTutorialStage = NULL;
+CFade *CManager::m_pFade = NULL;
+CManager::MODE CManager::m_mode = {};
+CTitle *CManager::m_pTitle = NULL;
+CTutorial *CManager::m_pTutorial = NULL;
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//コンストラクタ
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+CManager::CManager()
+{
+	m_pRenderer = NULL;
+}
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//デストラクタ
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+CManager::~CManager()
+{
+
+}
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//初期化関数
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+HRESULT CManager::Init(HWND hWnd, bool bWindow, HINSTANCE hInstance)
+{
+	HRESULT hResult = NULL;
+	m_pRenderer = new CRenderer;				//レンダラを生成
+	hResult = m_pRenderer->Init(hWnd, true);	//レンダラを初期化	
+
+	m_pCamera = new CCamera;					//カメラオブジェクトの生成
+	m_pCamera->Init();
+
+	CLight* pLight = NULL;						//ライトの生成
+	pLight = new CLight;
+	pLight->Init();
+
+	m_pInputKey = new CInputKeyboard;			//キーボード入力
+	m_pInputKey->Init(hInstance, hWnd);
+
+	m_pInputMou = new CInputMouse;				//マウス入力
+	m_pInputMou->Init(hInstance, hWnd);
+
+	LoadFile();									//ファイル読み込み
+	CDebug::Init();								//デバッグ情報の初期化処理（今はFPSのみ）
+
+	SetCursorPos(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+	//仮置きポリゴンとモデル
+	D3DXVECTOR3 vec = D3DXVECTOR3(0, 0, 0);
+
+
+	//追加
+	CLightEnemy::Create(D3DXVECTOR3(0, 0, 0), vec, D3DXVECTOR3(1, 1, 1));
+	CItem::Create(D3DXVECTOR3(100, 50, 100), vec, D3DXVECTOR3(0.1f, 0.1f, 0.1f));
+	m_pPlayer = CPlayer::Create(D3DXVECTOR3(0, 50, 0), D3DXVECTOR3(45, 180, 0), D3DXVECTOR3(1, 1, 1));
+	m_pTutorialStage = CTutorialStage::Create(D3DXVECTOR3(0, 0, 0), vec, D3DXVECTOR3(1, 1, 1));
+	CCrosshair::Create(20);
+	//CPolygon3D::Create(vec, D3DXVECTOR3(0, 0, -45), D3DXVECTOR3(100, 100, 0));
+	CScene2d*pScene2d = CScene2d::Create(D3DXVECTOR3(SCREEN_WIDTH - 100, 100, 0), D3DXVECTOR3(100, 100, 0), 0);
+	CScene2d::Create(D3DXVECTOR3(100, 100, 0), D3DXVECTOR3(100, 100, 0), 1);
+	CScene2d::Create(D3DXVECTOR3(100, SCREEN_HEIGHT - 100, 0), D3DXVECTOR3(100, 100, 0), 1);
+	//ここまで
+
+	return hResult;
+
+	
+}
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//終了関数
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+void CManager::Uninit(void)
+{
+	//シーンの終了
+	CScene::ReleaseAll();
+
+	//デバッグ情報の終了
+	CDebug::Uninit();
+
+	//フェード終了
+	if (m_pFade != NULL)
+	{
+		m_pFade->Uninit();
+		delete m_pFade;
+		m_pFade = NULL;
+	}
+
+	//入力の終了
+	m_pInputKey->Uninit();		
+	delete m_pInputKey;		
+	m_pInputKey = NULL;
+
+	m_pInputMou->Uninit();
+	delete m_pInputMou;
+	m_pInputMou = NULL;
+	//カメラの終了
+	m_pCamera->Uninit();	
+	delete m_pCamera;		
+	m_pCamera = NULL;	
+
+	//レンダラの終了
+	m_pRenderer->Uninit();	
+	delete m_pRenderer;
+	m_pRenderer = NULL; 
+
+	//読み込んだファイルのアンロード
+	UnloadFiles();
+}
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//更新関数
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+void CManager::Update(void)
+{
+	//入力の更新
+	m_pInputKey->Update();
+	m_pInputMou->Update();
+#ifdef _DEBUG
+	if (((CInputKeyboard*)m_pInputKey)->GetKeyTrigger(DIK_P))
+	{
+		CItem::Create(D3DXVECTOR3(100, 50, 100), D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0.1f, 0.1f, 0.1f));
+	}
+#endif
+	//レンダラの更新
+	m_pRenderer->Update();	
+	m_pCamera->Update();
+}
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//描画関数
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+void CManager::Draw(void)
+{
+	//カメラの描画処理
+	if (m_pCamera != NULL)
+	{
+		m_pCamera->SetCamera();
+	}
+	//レンダラの描画
+	if (m_pRenderer != NULL)
+	{
+		m_pRenderer->Draw();
+	}
+
+}
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//ゲッター関数
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+CRenderer* CManager::GetRenderer(void)
+{
+	return m_pRenderer;
+}
+
+CInput* CManager::GetInputKey(void)
+{
+	return m_pInputKey;
+}
+CInput* CManager::GetInputMou(void)
+{
+	return m_pInputMou;
+}
+CCamera* CManager::GetCamera(void)
+{
+	return m_pCamera;
+}
+
+CPlayer* CManager::GetPlayer(void)
+{
+	return m_pPlayer;
+}
+
+CTutorialStage* CManager::GetStage(void)
+{
+	return m_pTutorialStage;
+}
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//ファイルのロード
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+void CManager::LoadFile(void)
+{
+	CPlayer::Load();
+	CCrosshair::Load();
+	CLightEnemy::Load();
+	CTutorialStage::Load();
+	CItem::Load();
+}
+
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+//ファイルのアンロード
+//・・・・・・・・・・・・・・・・・・・・・・・・・・・
+void CManager::UnloadFiles(void)
+{
+	CPlayer::Unload();
+	CLightEnemy::Unload();
+	CTutorialStage::Unload();
+	CItem::Unload();
+}
+
+//=============================================================================
+// モード切替
+//=============================================================================
+void CManager::SetMode(MODE mode)
+{
+	//終了するシーン
+	switch (m_mode)
+	{
+	case MODE_TITLE:
+		if (m_pTitle != NULL)
+		{
+			m_pTitle->Uninit();
+		}
+		break;
+	case MODE_TUTORIAL:
+		if (m_pTutorial != NULL)
+		{
+			m_pTutorial->Uninit();
+		}
+		break;
+	case MODE_SELECT:
+		break;
+	case MODE_GAME:
+		break;
+	case MODE_RESULT:
+		break;
+	case MODE_END:
+		break;
+	}
+
+	CScene::ReleaseAll();
+
+	m_mode = mode;			//次のモード
+
+							//始めるシーン
+	switch (m_mode)
+	{
+	case MODE_TITLE:
+		m_pTitle->Create();
+		break;
+	case MODE_TUTORIAL:
+		m_pTutorial->Create();
+		break;
+	case MODE_SELECT:
+
+		break;
+	case MODE_GAME:
+		break;
+	case MODE_RESULT:
+		break;
+	case MODE_END:
+		break;
+	}
+}
